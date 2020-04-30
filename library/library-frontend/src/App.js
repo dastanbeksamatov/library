@@ -35,6 +35,7 @@ const App = () => {
       </div>
       <Alertify message={ errorMessage }/>
       <Authors
+        setError={ alertify }
         show={page === 'authors'}
       />
 

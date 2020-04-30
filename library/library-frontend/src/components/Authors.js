@@ -1,12 +1,23 @@
-import React from 'react'
-import { useQuery } from '@apollo/client'
-import { ALL_AUTHORS } from './utils/queries'
+import React, { useState } from 'react'
+import { useQuery, useMutation } from '@apollo/client'
+import { ALL_AUTHORS, CHANGE_YEAR } from './utils/queries'
 import { Table } from 'react-bootstrap'
+import Select from 'react-select'
+import { useField } from '../hooks'
 
-const Authors = ({ show }) => {
+const Authors = ({ setError , show }) => {
+  const [ author, setAuthor ] = useState(null)
+  const year = useField('number', 0)
+
+  const [ changeYear ] = useMutation(CHANGE_YEAR, {
+    refetchQueries: [{ query: ALL_AUTHORS }],
+    awaitRefetchQueries: true,
+    onError: (error) => {
+      setError(error.message)
+    }
+  })
 
   const { loading, error, data } = useQuery(ALL_AUTHORS)
-
   if (!show) {
     return null
   }
@@ -15,6 +26,22 @@ const Authors = ({ show }) => {
   if(error) { return <div><h1>Error {error.message}</h1></div> }
 
   const authors = data.allAuthors
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    changeYear({
+      variables: {
+        name: author.value,
+        year: Number(year.value) }
+    })
+    year.value = 0
+  }
+  const options = authors.map(author => {
+    return {
+      value: author.name,
+      label: author.name
+    }
+  })
 
   return (
     <div>
@@ -39,7 +66,11 @@ const Authors = ({ show }) => {
           )}
         </tbody>
       </Table>
-
+      <form onSubmit={ handleSubmit }>
+        <Select options={ options } value={ author } onChange={ (value) => setAuthor(value) }/>
+        <input { ...year } />
+        <button type="submit">set year</button>
+      </form>
     </div>
   )
 }

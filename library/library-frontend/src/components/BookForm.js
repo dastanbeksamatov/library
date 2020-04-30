@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useMutation } from '@apollo/client'
 import { CREATE_BOOK, ALL_BOOKS } from './utils/queries'
 import { Form, Button } from 'react-bootstrap'
@@ -7,6 +7,8 @@ import { Form, Button } from 'react-bootstrap'
 const BookForm = ({ setError, show }) => {
   const [ genre, setGenre ] = useState('')
   const [genres, setGenres] = useState([])
+
+  const formRef = useRef(null)
 
   const [ createBookie ] = useMutation(CREATE_BOOK, {
     refetchQueries: [{ query: ALL_BOOKS }],
@@ -32,15 +34,18 @@ const BookForm = ({ setError, show }) => {
         genres: genres
       }
     })
+    formRef.current.reset()
   }
 
-  const addGenre = (event) => {
-    setGenres(genres.concat(event.target.value))
+  const addGenre = () => {
+    setGenres(genres.concat(genre))
+    console.log(genres)
+    setGenre('')
   }
 
   return (
     <div>
-      <Form onSubmit={submit}>
+      <Form onSubmit={submit} ref={formRef}>
         <Form.Group>
           <Form.Label>title</Form.Label>
           <Form.Control
@@ -58,11 +63,11 @@ const BookForm = ({ setError, show }) => {
             type="number"
             name="published"
           />
-          <form onSubmit={ addGenre }>
+          <div>
             <input value={ genre } onChange={ ({ target }) => setGenre(target.value)}/>
-            <button type="submit">add genre</button>
-          </form>
-          <div>genres: { genres.join(' ') }</div>
+            <button onClick={ addGenre } type="button">add genre</button>
+            <div>genres: { genres.join(' ') }</div>
+          </div>
           <Button type="submit">create book</Button>
         </Form.Group>
       </Form>

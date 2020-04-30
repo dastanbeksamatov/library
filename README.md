@@ -4,5 +4,5 @@ Fullstack library project developed for FullStackOpen course
 # Backend
 Node.js with GraphQL
 
-#Frontend
+# Frontend
 React with Apollo Client

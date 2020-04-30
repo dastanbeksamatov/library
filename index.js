@@ -6,7 +6,7 @@ console.log(authors)
 const typeDefs = gql`
   type Author {
     id: ID!
-    name: String
+    name: String!
     born: Int
     bookCount: Int
   }
@@ -15,14 +15,20 @@ const typeDefs = gql`
     title: String!
     published: Int!
     author: String!
-    genres: [String!]!
+    genres: [String]
   }
   type Query {
     bookCount: Int!
     authorCount: Int!
     allBooks(genre: String, author: String): [Book]!
     allAuthors:[Author]!
-    addBook(title: String!, published: Int!, author: String!, genres: [String]): Book
+  }
+  type Mutation {
+    addBook(
+      title: String!, 
+      published: Int!, 
+      author: String,
+      genres: [String]): Book
     editAuthor(name: String!, setBornTo: Int!): Author
   }
 `
@@ -47,10 +53,14 @@ const resolvers = {
         })
         return {
           name: author.name,
-          bookCount
+          born: author.born,
+          bookCount,
+          books: author.books
         }
       })
-    },
+    }
+  },
+  Mutation:{
     addBook: (root, args) => {
       const newBook = {
         ...args,
@@ -62,7 +72,7 @@ const resolvers = {
           exists = true
         }
       })
-      authors = exists ? authors: authors.concat({ name: args.author, bookCount: 0 }) 
+      authors = exists ? authors: authors.concat({ name: args.author, bookCount: 0, books: [newBook] }) 
       books = books.concat(newBook)
       return newBook
     },
@@ -77,7 +87,7 @@ const resolvers = {
       })
       return edited
     }
-  },
+  }
 }
 
 const server = new ApolloServer({

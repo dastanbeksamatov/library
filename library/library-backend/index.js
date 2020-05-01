@@ -1,20 +1,45 @@
 const { ApolloServer, gql } = require('apollo-server')
-const {v4: uuidv4} = require('uuid')
-let { authors, books } = require('./data/library')
+const mongoose = require('mongoose')
+const { resolvers } = require('./resolvers')
+const jwt = require('jsonwebtoken')
+const User = require('./models/User')
+require('dotenv').config()
 
-console.log(authors)
+mongoose.set('useFindAndModify', false)
+
+const MONGODB_URI = process.env.MONGODB_URI
+const JWT_SECRET = process.env.SECRET
+
+mongoose.set('useCreateIndex', true)
+console.log('connecting to ', MONGODB_URI)
+
+mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => {
+    console.log('succesfully connected')
+  })
+  .catch((error) => {
+    console.log('error: ', error.message)
+  })
+
 const typeDefs = gql`
+  type User {
+    username: String!
+    favoriteGenre: String!
+    id: ID!
+  }
+  type Token {
+    value: String!
+  }
   type Author {
     id: ID!
     name: String!
     born: Int
-    bookCount: Int
   }
   type Book {
     id: ID!
     title: String!
     published: Int!
-    author: String!
+    author: Author
     genres: [String]
   }
   type Query {
@@ -22,77 +47,45 @@ const typeDefs = gql`
     authorCount: Int!
     allBooks(genre: String, author: String): [Book]!
     allAuthors:[Author]!
+    me: User
+  }
+  input AuthorInput{
+    name: String!
+    born: Int
   }
   type Mutation {
     addBook(
-      title: String!, 
-      published: Int!, 
-      author: String,
+      title: String! 
+      published: Int!
+      author: AuthorInput
       genres: [String]): Book
-    editAuthor(name: String!, setBornTo: Int!): Author
+    editAuthor(
+      name: String!, 
+      setBornTo: Int!): Author
+    addAuthor(
+      name: String!, 
+      born: Int!): Author
+    createUser(username: String!, 
+      favoriteGenre: String!): User
+    login(username:String!, 
+      password:String!): Token
   }
 `
 
-const resolvers = {
-  Query: {
-    bookCount: () => books.length,
-    authorCount: () => authors.length,
-    allBooks: (root, args) => {
-      if(!args.author){
-        return books
-      }
-      return books.filter(book => book.genres.includes(args.genre) && book.author === args.author)
-    },
-    allAuthors: () => {
-      return authors.map(author => {
-        let bookCount = 0
-        books.forEach(book => {
-          if(author.name === book.author){
-            bookCount += 1
-          }
-        })
-        return {
-          name: author.name,
-          born: author.born,
-          bookCount,
-          books: author.books
-        }
-      })
-    }
-  },
-  Mutation:{
-    addBook: (root, args) => {
-      const newBook = {
-        ...args,
-        id: uuidv4()
-      }
-      let exists = false
-      books.forEach(book=> {
-        if(book.author === args.author){
-          exists = true
-        }
-      })
-      authors = exists ? authors: authors.concat({ name: args.author, bookCount: 0, books: [newBook] }) 
-      books = books.concat(newBook)
-      return newBook
-    },
-    editAuthor: (root, args) => {
-      let edited
-      authors = authors.map(author => {
-        if(author.name === args.name){
-          author.born = args.setBornTo
-          edited = author
-        }
-        return author
-      })
-      return edited
-    }
-  }
-}
 
 const server = new ApolloServer({
   typeDefs,
   resolvers,
+  context: async ({ req }) => {
+    const auth = req ? req.headers.authorization: null
+    if(auth && auth.toLowerCase().startsWith('bearer ')){
+      const decodedToken = jwt.verify(
+        auth.substring(7), JWT_SECRET
+      )
+      const currentUser = await User.findById(decodedToken.id)
+      return { currentUser }
+    }
+  },
 })
 
 server.listen().then(({ url }) => {

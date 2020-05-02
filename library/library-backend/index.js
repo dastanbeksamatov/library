@@ -1,8 +1,9 @@
-const { ApolloServer, gql } = require('apollo-server')
+const { ApolloServer } = require('apollo-server')
 const mongoose = require('mongoose')
 const { resolvers } = require('./resolvers')
 const jwt = require('jsonwebtoken')
 const User = require('./models/User')
+const { typeDefs } = require('./typeDefs')
 require('dotenv').config()
 
 mongoose.set('useFindAndModify', false)
@@ -21,58 +22,6 @@ mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true 
     console.log('error: ', error.message)
   })
 
-const typeDefs = gql`
-  type User {
-    username: String!
-    favoriteGenre: String!
-    id: ID!
-  }
-  type Token {
-    value: String!
-  }
-  type Author {
-    id: ID!
-    name: String!
-    born: Int
-  }
-  type Book {
-    id: ID!
-    title: String!
-    published: Int!
-    author: Author
-    genres: [String]
-  }
-  type Query {
-    bookCount: Int!
-    authorCount: Int!
-    allBooks(genre: String, author: String): [Book]!
-    allAuthors:[Author]!
-    me: User
-  }
-  input AuthorInput{
-    name: String!
-    born: Int
-  }
-  type Mutation {
-    addBook(
-      title: String! 
-      published: Int!
-      author: AuthorInput
-      genres: [String]): Book
-    editAuthor(
-      name: String!, 
-      setBornTo: Int!): Author
-    addAuthor(
-      name: String!, 
-      born: Int!): Author
-    createUser(username: String!, 
-      favoriteGenre: String!): User
-    login(username:String!, 
-      password:String!): Token
-  }
-`
-
-
 const server = new ApolloServer({
   typeDefs,
   resolvers,
@@ -88,6 +37,7 @@ const server = new ApolloServer({
   },
 })
 
-server.listen().then(({ url }) => {
+server.listen().then(({ url, subscriptionsUrl }) => {
   console.log(`Server ready at ${url}`)
+  console.log(`Subscriptions ready at ${subscriptionsUrl}`)
 })

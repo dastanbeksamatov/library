@@ -2,6 +2,8 @@ const Book = require('./models/Book')
 const Author = require('./models/Author')
 const User = require('./models/User')
 const jwt = require('jsonwebtoken')
+const { PubSub } = require('apollo-server')
+const pubsub = new PubSub()
 const { UserInputError, AuthenticationError } = require('apollo-server')
 require('dotenv').config()
 
@@ -20,10 +22,13 @@ const resolvers = {
     },
     allBooks: async (root, args) => {
       const books = await Book.find({}).populate('author')
-      if(!args.author){
+      if(!args.genre && !args.author){
         return books
       }
-      return books.filter(book => book.genres.includes(args.genre) && book.author.name === args.author)
+      if(args.author){
+        return books.filter(book => book.author.name === args.author)
+      }
+      return books.filter(book => book.genres.includes(args.genre))
     },
     allAuthors: async () => {
       const authors = await Author.find({})
@@ -44,6 +49,18 @@ const resolvers = {
     },
     me: (root, args, context) => {
       return context.currentUser
+    },
+    getGenres: async() => {
+      const books = await Book.find({})
+      const listGenres = []
+      books.map(book => {
+        book.genres.forEach(genre => {
+          if(!listGenres.includes(genre)){
+            listGenres.push(genre)
+          }
+        })
+      })
+      return listGenres
     }
   },
   Mutation:{
@@ -76,6 +93,7 @@ const resolvers = {
           invalidArgs: args,
         })
       }
+      pubsub.publish('BOOK_ADDED', { bookAdded: book })
       return book
 
     },
@@ -134,7 +152,12 @@ const resolvers = {
       }
       return { value: jwt.sign(userForToken, JWT_SECRET) }
     }
-  }
+  },
+  Subscription: {
+    bookAdded: {
+      subscribe: () => pubsub.asyncIterator([ 'BOOK_ADDED' ])
+    },
+  },
 }
 module.exports = {
   resolvers

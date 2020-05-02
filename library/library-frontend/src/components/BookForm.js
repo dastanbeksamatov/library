@@ -11,11 +11,17 @@ const BookForm = ({ setError, show }) => {
   const formRef = useRef(null)
 
   const [ createBookie ] = useMutation(CREATE_BOOK, {
-    refetchQueries: [{ query: ALL_BOOKS }],
-    awaitRefetchQueries: true,
     onError: (error) => {
       console.log(error)
       setError(error.message)
+    },
+    update: (store, response) => {
+      const dataInStore = store.readQuery({ query: ALL_BOOKS })
+      dataInStore.allBooks.push(response.data.addBook)
+      store.writeQuery({
+        query: ALL_BOOKS,
+        data: dataInStore
+      })
     }
   })
 
@@ -30,7 +36,9 @@ const BookForm = ({ setError, show }) => {
       variables: {
         title: form.elements.title.value,
         published: Number(form.elements.published.value),
-        author: form.elements.author.value,
+        author: {
+          name: form.elements.author.value
+        },
         genres: genres
       }
     })

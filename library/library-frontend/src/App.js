@@ -3,6 +3,8 @@ import Authors from './components/Authors'
 import Books from './components/Books'
 import BookForm from './components/BookForm'
 import { Alert } from 'react-bootstrap'
+import { useApolloClient } from '@apollo/client'
+import LoginForm from './components/Login'
 
 const Alertify = ({ message }) => {
   if(!message){
@@ -16,8 +18,10 @@ const Alertify = ({ message }) => {
 }
 
 const App = () => {
-  const [page, setPage] = useState('authors')
-  const [errorMessage, setErrorMessage] = useState(null)
+  const [ page, setPage ] = useState('authors')
+  const [ errorMessage, setErrorMessage ] = useState(null)
+  const [ token, setToken ] = useState(null)
+  const client = useApolloClient()
 
   const alertify = (message) => {
     setErrorMessage(message)
@@ -25,15 +29,26 @@ const App = () => {
       setErrorMessage('')
     }, 5000)
   }
-
+  const logOut = () => {
+    setToken(null)
+    localStorage.clear()
+    client.resetStore()
+    setPage('login')
+  }
   return (
     <div className="container">
       <div>
         <button onClick={() => setPage('authors')}>authors</button>
         <button onClick={() => setPage('books')}>books</button>
-        <button onClick={() => setPage('add')}>add book</button>
+        {token ? <button onClick={() => setPage('add')}>add book</button>: null }
+        {token ? <button onClick={() => logOut()}>logout</button>:<button onClick={() => setPage('login')}>login</button> }
       </div>
       <Alertify message={ errorMessage }/>
+      <LoginForm
+        setError={ setErrorMessage }
+        setToken={ setToken }
+        show={ page==='login' && !token}
+      />
       <Authors
         setError={ alertify }
         show={page === 'authors'}
@@ -44,7 +59,7 @@ const App = () => {
       />
 
       <BookForm
-        show={page === 'add'}
+        show={page === 'add' && token}
         setError={ alertify }
       />
 

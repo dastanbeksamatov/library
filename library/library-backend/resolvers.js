@@ -5,32 +5,33 @@ const jwt = require('jsonwebtoken')
 const { UserInputError, AuthenticationError } = require('apollo-server')
 require('dotenv').config()
 
-let books
-let authors
-
 const JWT_SECRET = process.env.SECRET
 
-const getData = async () => {
-  books = await Book.find({})
-  authors = await Author.find({})
-}
-getData()
 
 const resolvers = {
   Query: {
-    bookCount: () => books.length,
-    authorCount: () => authors.length,
+    bookCount: async () => {
+      const books = await Book.find({})
+      return books.length
+    },
+    authorCount: async () => {
+      const authors = await Author.find({})
+      return authors.length
+    },
     allBooks: async (root, args) => {
+      const books = await Book.find({}).populate('author')
       if(!args.author){
         return books
       }
-      return books.filter(book => book.genres.includes(args.genre) && book.author === args.author)
+      return books.filter(book => book.genres.includes(args.genre) && book.author.name === args.author)
     },
-    allAuthors: () => {
+    allAuthors: async () => {
+      const authors = await Author.find({})
+      const books = await Book.find({})
       return authors.map(author => {
         let bookCount = 0
         books.forEach(book => {
-          if(author.name === book.author){
+          if(book.author && author.name === book.author.name){
             bookCount += 1
           }
         })
@@ -47,7 +48,22 @@ const resolvers = {
   },
   Mutation:{
     addBook: async (root, args, context) => {
-      const book = new Book({ ...args })
+      let authorId
+      const author = await Author.findOne({ name: args.author.name })
+      if(!author){
+        const newAuthor = new Author({ name: args.author.name })
+        await newAuthor.save()
+        authorId = newAuthor._id
+      }
+      else{
+        authorId = author._id
+      }
+      const book = new Book({
+        title: args.title,
+        genres: args.genres,
+        author: authorId,
+        published: args.published
+      })
       const user = context.currentUser
       if(!user){
         throw new AuthenticationError('User not logged in to add book')
@@ -61,6 +77,7 @@ const resolvers = {
         })
       }
       return book
+
     },
     addAuthor: async (root, args, context) => {
       const author = new Author({ ...args })

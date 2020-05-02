@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react'
 import { useMutation } from '@apollo/client'
-import { CREATE_BOOK, ALL_BOOKS } from './utils/queries'
+import { CREATE_BOOK } from './utils/queries'
 import { Form, Button } from 'react-bootstrap'
 
 
-const BookForm = ({ setError, show }) => {
+const BookForm = ({ setError, show, updateCacheWith }) => {
   const [ genre, setGenre ] = useState('')
   const [genres, setGenres] = useState([])
 
@@ -16,12 +16,7 @@ const BookForm = ({ setError, show }) => {
       setError(error.message)
     },
     update: (store, response) => {
-      const dataInStore = store.readQuery({ query: ALL_BOOKS })
-      dataInStore.allBooks.push(response.data.addBook)
-      store.writeQuery({
-        query: ALL_BOOKS,
-        data: dataInStore
-      })
+      updateCacheWith(response.data.addBook)
     }
   })
 
@@ -46,7 +41,8 @@ const BookForm = ({ setError, show }) => {
   }
 
   const addGenre = () => {
-    setGenres(genres.concat(genre))
+    genres.push(genre)
+    setGenres(genres)
     console.log(genres)
     setGenre('')
   }

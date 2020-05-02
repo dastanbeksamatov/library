@@ -26,7 +26,6 @@ const Authors = ({ setError , show }) => {
   if(error) { return <div><h1>Error {error.message}</h1></div> }
 
   const authors = data.allAuthors
-  console.log(authors)
   const handleSubmit = (event) => {
     event.preventDefault()
     changeYear({

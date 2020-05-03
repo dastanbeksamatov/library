@@ -1,34 +1,33 @@
-import React from 'react'
-import { ALL_BOOKS, CURRENT_USER } from './utils/queries'
-import { useQuery } from '@apollo/client'
+import React, { useEffect } from 'react'
+import { ALL_BOOKS } from './utils/queries'
+import { useLazyQuery } from '@apollo/client'
 import { Table } from 'react-bootstrap'
 
-const Recommend = ({ show }) => {
-  const { data, loading, error } = useQuery(ALL_BOOKS)
-  const { data: userData, loading: userLoading, error: userError } = useQuery(CURRENT_USER)
+const Recommend = ({ show, user }) => {
+  const [ getRecBooks, recBooks] = useLazyQuery(ALL_BOOKS, {
+    pollInterval: 3000,
+    onError: (error) => {
+      console.log(error.message)
+    }
+  })
+
+  useEffect(() => {
+    getRecBooks({
+      variables: {
+        genre: user ? user.favoriteGenre : ''
+      }
+    })
+  }, [user])//eslint-disable-line
+
   if (!show){ return null }
-  if (loading) { return (<div>loading...</div>) }
-  if (error){ return (<div>error: { error.message }</div>) }
-  if (userLoading){ return (<div>user is loading...</div>) }
-  const genre = userData ? userData.me.favoriteGenre : ''
-  console.log(userData)
-  const allBooks = data.allBooks
-  if(genre === ''){
-    return (
-      <div>
-        Unfortunately current user does not have favorite genre. But hey check out these:
-        <ul>
-          <li>{ allBooks[0].title }</li>
-          <li>{ allBooks[3].title }</li>
-        </ul>
-      </div>
-    )
-  }
-  const recommendBooks = allBooks.filter(book => book.genres.includes(genre))
+  if (recBooks.loading) { return (<div>loading...</div>) }
+  if (recBooks.error){ return (<div>error: { recBooks.error.message }</div>) }
+
+  const recommendBooks = recBooks.data.allBooks
 
   return (
     <div className="container">
-      <h2>Recommended books to { userData.me.username }</h2>
+      <h2>Recommended books: { user ? user.username: '' } for title { user ? user.favoriteGenre: 'all books' }</h2>
       <Table striped variant="dark">
         <tbody>
           <tr>

@@ -15,7 +15,6 @@ const LoginForm = ({ setError, setToken, show }) => {
 
   useEffect(() => {
     if(result.data){
-      console.log('data ', result.data)
       const token = result.data.login.value
       setToken(token)
       localStorage.setItem('loggedInUserToken', token)
@@ -29,7 +28,7 @@ const LoginForm = ({ setError, setToken, show }) => {
   const handleSubmit = (event) => {
     event.preventDefault()
     const form = event.target
-    console.log(form.password.value)
+    console.log(form.elements.username.value + ' trying to log in')
     logIn({
       variables:{
         username: form.elements.username.value,

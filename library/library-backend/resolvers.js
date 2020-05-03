@@ -32,11 +32,11 @@ const resolvers = {
     },
     allAuthors: async () => {
       const authors = await Author.find({})
-      const books = await Book.find({})
+      const books = await Book.find({}).populate('author')
       return authors.map(author => {
         let bookCount = 0
         books.forEach(book => {
-          if(book.author && author.name === book.author.name){
+          if(book.author && (author.name === book.author.name)){
             bookCount += 1
           }
         })

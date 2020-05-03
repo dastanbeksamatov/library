@@ -4,6 +4,7 @@ const { resolvers } = require('./resolvers')
 const jwt = require('jsonwebtoken')
 const User = require('./models/User')
 const { typeDefs } = require('./typeDefs')
+const { logger } = require('./logger')
 require('dotenv').config()
 
 mongoose.set('useFindAndModify', false)
@@ -32,9 +33,13 @@ const server = new ApolloServer({
         auth.substring(7), JWT_SECRET
       )
       const currentUser = await User.findById(decodedToken.id)
+      console.log(currentUser)
       return { currentUser }
     }
   },
+  plugins: [
+    logger,
+  ]
 })
 
 server.listen().then(({ url, subscriptionsUrl }) => {

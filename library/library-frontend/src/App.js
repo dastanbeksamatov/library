@@ -6,7 +6,7 @@ import { Alert } from 'react-bootstrap'
 import { useSubscription, useApolloClient, useQuery } from '@apollo/client'
 import LoginForm from './components/Login'
 import Recommend from './components/Recommend'
-import { ALL_BOOKS, BOOK_ADDED, CURRENT_USER } from './components/utils/queries'
+import { ALL_BOOKS, BOOK_ADDED, CURRENT_USER, ALL_AUTHORS } from './components/utils/queries'
 
 const Alertify = ({ message }) => {
   if(!message){
@@ -49,14 +49,26 @@ const App = () => {
 
   // updating the cache after the addition of new Book
   const updateCacheWith = (addedBook) => {
-    const includedIn = (set, object) =>
+    const includedInWithId = (set, object) =>
       set.map(p => p.id).includes(object.id)
+    const includedInWithName = (set, object) => {
+      set.map(p => p.name).includes(object.name)
+    }
 
-    const dataInStore = client.readQuery({ query: ALL_BOOKS })
-    if (!includedIn(dataInStore.allBooks, addedBook)) {
+    const booksInStore = client.readQuery({ query: ALL_BOOKS })
+    const authorsInStore = client.readQuery({ query: ALL_AUTHORS })
+    if (!includedInWithId(booksInStore.allBooks, addedBook)) {
+      if(client.cache.data.data.ROOT_QUERY){
+        client.writeQuery({
+          query: ALL_BOOKS,
+          data: { allBooks : booksInStore.allBooks.concat(addedBook) }
+        })
+      }
+    }
+    if(!includedInWithName(authorsInStore, addedBook.author)){
       client.writeQuery({
-        query: ALL_BOOKS,
-        data: { allBooks : dataInStore.allBooks.concat(addedBook) }
+        query: ALL_AUTHORS,
+        data: { allAuthors: authorsInStore.allAuthors.concat({ ...addedBook.author, born: 0 } ) }
       })
     }
   }
@@ -66,6 +78,8 @@ const App = () => {
       console.log(subscriptionData)
       const addedBook = subscriptionData.data.bookAdded
       alertify(`${addedBook.name} added`)
+      console.log(client.readQuery({ query: ALL_BOOKS }))
+      console.log(client.readQuery({ query: ALL_BOOKS }))
       updateCacheWith(addedBook)
     }
   })

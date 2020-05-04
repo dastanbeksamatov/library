@@ -8,6 +8,7 @@ const BOOK_DETAILS = gql`
     }
     published
     genres
+    id
   }
 `
 
@@ -18,6 +19,16 @@ query allBooks($genre: String, $author: String){
   }
 }
 ${BOOK_DETAILS}
+`
+
+export const RECOMMEND_BOOKS = gql`
+  query RecommendBooks($genre: String) {
+    allBooks(genre: $genre){
+      title
+      published
+      id
+    }
+  }
 `
 
 export const ALL_AUTHORS = gql`

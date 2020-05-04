@@ -19,7 +19,7 @@ const Books = ({ show }) => {
       }
     })
     setBooks(bookData ? bookData.allBooks : books)
-  }, [view, getBooks])//eslint-disable-line
+  }, [view])//eslint-disable-line
   if (!show) {
     return null
   }

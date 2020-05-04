@@ -3,10 +3,10 @@ import Authors from './components/Authors'
 import Books from './components/Books'
 import BookForm from './components/BookForm'
 import { Alert } from 'react-bootstrap'
-import { useSubscription, useApolloClient, useQuery } from '@apollo/client'
+import { useSubscription, useApolloClient, useQuery, useLazyQuery } from '@apollo/client'
 import LoginForm from './components/Login'
 import Recommend from './components/Recommend'
-import { ALL_BOOKS, BOOK_ADDED, CURRENT_USER, ALL_AUTHORS } from './components/utils/queries'
+import { ALL_BOOKS, RECOMMEND_BOOKS, BOOK_ADDED, CURRENT_USER, ALL_AUTHORS } from './components/utils/queries'
 
 const Alertify = ({ message }) => {
   if(!message){
@@ -25,6 +25,9 @@ const App = () => {
   const [ token, setToken ] = useState(null)
   const [ currentUser, setCurrentUser ] = useState(null)
   const client = useApolloClient()
+  const [ getRecBooks, recBooks ] = useLazyQuery(RECOMMEND_BOOKS, {
+    fetchPolicy: 'network-only'
+  })
 
   const alertify = (message) => {
     setErrorMessage(message)
@@ -44,8 +47,7 @@ const App = () => {
       setCurrentUser(userResult.data.me)
       console.log(userResult.data.me)
     }
-  }, [userResult.data, currentUser]) // eslint-disable-line
-
+  }, [userResult.data]) // eslint-disable-line
 
   // updating the cache after the addition of new Book
   const updateCacheWith = (addedBook) => {
@@ -92,13 +94,25 @@ const App = () => {
     setCurrentUser(null)
   }
 
+  const handleRecommendation = async () => {
+    await getRecBooks({
+      variables: {
+        genre: currentUser ? currentUser.favoriteGenre : ''
+      }
+    })
+    if (recBooks.loading){
+      console.log('recommendations loading')
+    }
+    console.log(recBooks)
+    setPage('recommend')
+  }
   return (
     <div className="container">
       <div>
         <button onClick={() => setPage('authors')}>authors</button>
         <button onClick={() => setPage('books')}>books</button>
         {token ? <button onClick={() => setPage('add')}>add book</button>: null }
-        {token ? <button onClick={() => setPage('recommend')}>recommendations</button>: null }
+        {token ? <button onClick={ handleRecommendation }>recommendations</button>: null }
         {token ? <button onClick={() => logOut()}>logout</button>:<button onClick={() => setPage('login')}>login</button> }
       </div>
       <Alertify message={ errorMessage }/>
@@ -124,6 +138,7 @@ const App = () => {
       <Recommend
         show={ page === 'recommend' && token }
         user={ currentUser }
+        recBooks={ recBooks.data ? recBooks.data.allBooks : null }
       />
 
     </div>
